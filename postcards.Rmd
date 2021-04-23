@@ -23,5 +23,41 @@ x <- read_rds("pa.rds")
 
 *We have enough money to send out 10,000 postcards. If our goal is to maximize the number of voters, what kind of cards should we send out and to whom?*
 
+```{r fit1, cache=TRUE}
+fit_1 <- stan_glm(voted_2020_primary ~ treat*vote_history + treat*party + 
+                    treat*sex + treat*age_bin + treat*vote_history,
+                  data = x,
+                  refresh = 0,
+                  seed = 54)
+```
 
+* What sort of model should you estimate to determine who to send out postcards to if your goal is send them out to people who are most likely to vote? Who do you send out the cards to? How sure are you about what will happen? Temperance!
+
+```{r}
+print(fit_1, 4)
+```
+```{r}
+
+party <- unique(x$party)
+sex <- unique(x$sex)
+treat <- unique(x$treat)
+age_bin <- unique(x$age_bin)
+vote_history <- unique(x$vote_history)
+
+newobs <- expand_grid(treat, party, sex, age_bin, vote_history)
+
+fitted_draws <- add_fitted_draws(newobs, fit_1) %>%
+  group_by(party, age_bin, sex, treat, vote_history) %>% 
+  summarise(average = mean(.value),
+            .groups = "drop") %>%
+  arrange(desc(average)) %>%
+  filter(party == "Democrat",
+         vote_history == "Municipal Primary Voter",
+         sex == "F")
+
+fitted_data <- fitted_draws %>%
+  select(age_bin, treat, average)
+
+
+```
 
